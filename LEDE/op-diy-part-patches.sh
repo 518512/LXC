@@ -122,8 +122,6 @@ git clone https://github.com/sbwml/packages_lang_golang -b 24.x feeds/packages/l
 ##passwall
 git clone https://github.com/xiaorouji/openwrt-passwall.git package/passwall
 git clone https://github.com/xiaorouji/openwrt-passwall-packages.git package/passwall-packages
-echo "src-git passwall https://github.com/xiaorouji/openwrt-passwall.git;main" >> "feeds.conf.default"
-echo "src-git passwall_packages https://github.com/xiaorouji/openwrt-passwall-packages.git;main" >> "feeds.conf.default"
 
 # git checkout v23.05.3
 
