@@ -231,7 +231,7 @@ jobs:
 
       - name: Create release
         id: release
-        uses: ncipollo/release-action@v1
+        uses: ncipollo/release-action@main
         with:
           name: R${{ env.DATE1 }} for ${{ env.PRODUCT_NAME }}
           allowUpdates: true
