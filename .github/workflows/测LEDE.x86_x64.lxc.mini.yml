@@ -83,8 +83,8 @@ jobs:
         sudo -E systemctl daemon-reload
         sudo -E apt clean
         sudo timedatectl set-timezone "$TZ"
-        sudo mkdir -p /workdir
-        sudo chown $USER:$GROUPS /workdir
+        sudo mkdir -p /mnt/workdir
+        sudo chown $USER:$GROUPS /mnt/workdir
         echo "status=success" >> ${GITHUB_OUTPUT}
         df -Th
         
@@ -102,7 +102,7 @@ jobs:
         large-packages: true
         swap-storage: true
 
-    - name: 检查空间使用情况1
+    - name: 检查空间使用情况-1
       if: (!cancelled())
       run: df -hT
 
@@ -124,11 +124,11 @@ jobs:
         START_TIME=`date +'%Y-%m-%d %H:%M:%S'`
         echo "START_SECONDS=$(date --date="$START_TIME" +%s)" >> $GITHUB_ENV
     - name: Clone source code
-      working-directory: /workdir
+      working-directory: /mnt/workdir
       run: |
         df -hT $PWD
         git clone $REPO_URL -b $REPO_BRANCH openwrt
-        ln -sf /workdir/openwrt $GITHUB_WORKSPACE/openwrt
+        ln -sf /mnt/workdir/openwrt $GITHUB_WORKSPACE/openwrt
         cd openwrt
         useVersionInfo=$(git show -s --date=short --format="Author: %an<br/>date: %cd<br/>commit: %s<br/>commit hash: %H")
         echo "useVersionInfo=$useVersionInfo" >> $GITHUB_ENV
@@ -186,7 +186,11 @@ jobs:
           🎉开始编译：${{ env.PRODUCT_NAME }}！
 
         " >/dev/null 2>&1 && echo "ok..."
-
+        
+    - name: 检查空间使用情况-2
+      if: (!cancelled())
+      run: df -hT
+      
     - name: Compile the firmware
       id: compile
       run: |
@@ -207,6 +211,10 @@ jobs:
         echo "BUILD_TIME=${HOUR}时${MIN}分${SEC}秒" >> $GITHUB_ENV
         echo "FILE_DATE=_$(date +"%Y%m%d%H%M")" >> $GITHUB_ENV
         echo "FILE_DATE2=$(date +"%Y%m%d%H%M")" >> $GITHUB_ENV
+    
+    - name: 检查空间使用情况-3
+      if: (!cancelled())
+      run: df -hT
 
     - name: Clean up server space
       if: steps.compile.outputs.status == 'success' && !cancelled()
