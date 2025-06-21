@@ -87,6 +87,24 @@ jobs:
         sudo chown $USER:$GROUPS /workdir
         echo "status=success" >> ${GITHUB_OUTPUT}
         df -Th
+        
+    - name: 释放磁盘空间
+      uses: jlumbroso/free-disk-space@main
+      with:
+        # this might remove tools that are actually needed,
+        # if set to "true" but frees about 6 GB
+        tool-cache: true
+        # all of these default to true, but feel free to set to
+        # "false" if necessary for your workflow
+        android: true
+        dotnet: true
+        haskell: true
+        large-packages: true
+        swap-storage: true
+
+    - name: 检查空间使用情况1
+      if: (!cancelled())
+      run: df -hT
 
     - name: 缓存加速
       uses: stupidloud/cachewrtbuild@main
@@ -245,7 +263,7 @@ jobs:
     
     - name: Create release
       id: release
-      uses: ncipollo/release-action@v1
+      uses: ncipollo/release-action@main
       with:
         name: R${{ env.DATE1 }} for ${{ env.PRODUCT_NAME }}
         allowUpdates: true
