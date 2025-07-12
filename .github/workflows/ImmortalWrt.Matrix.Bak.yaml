@@ -1,0 +1,234 @@
+name: ImmortalWrt Matrix 2-Release
+permissions: write-all
+
+on:
+  workflow_dispatch:
+    inputs:
+      ssh:
+        description: 'Enable SSH debugging'
+        required: false
+        default: 'false'
+  schedule:
+    - cron: '0 18 * * 5'  # 每周五 18:00 定时触发
+
+env:
+  REPO_URL: https://github.com/immortalwrt/immortalwrt
+  TZ: Asia/Shanghai
+  UPLOAD_RELEASE: true
+  PRODUCT_NAME: ImmWRT_Matrix
+  PRODUCT_NAME_Bak: ImmWRT_Matrix_Bak
+  DIY_P1_SH: LEDE/diy-part1.sh
+  DIY_P2_SH: LEDE/diy-part2.sh
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target:
+          - name: openwrt24—x86
+            branch: openwrt-24.10
+            config: LEDE/.x86_x64.mini.fix.config
+            version: "24.10"
+          - name: openwrt23—x86
+            branch: openwrt-23.05
+            config: LEDE/.x86_x64.mini.fix.config
+            version: "23.05"
+          - name: openwrt24-arm
+            branch: openwrt-24.10
+            config: LEDE/.Arm.mini.fix.config
+            version: "24.10"
+          - name: openwrt23-arm
+            branch: openwrt-23.05
+            config: LEDE/.Arm.mini.fix.config
+            version: "23.05"
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v3
+      - name: Setup build environment
+        run: |
+          sudo -E apt-get -qq update
+          sudo bash -c 'bash <(curl -s https://build-scripts.immortalwrt.org/init_build_environment.sh)'
+          sudo -E apt-get -qq autoremove --purge
+          sudo -E apt-get -qq clean
+          sudo timedatectl set-timezone "$TZ"
+          sudo mkdir -p /mnt/workdir
+          sudo chown $USER:$GROUPS /mnt/workdir
+          echo "FILE_DATE2=$(date '+%Y%m%d%H%M')" >> $GITHUB_ENV
+      
+      - name: Clone OpenWrt source
+        working-directory: /mnt/workdir
+        run: |
+          git clone $REPO_URL -b ${{ matrix.target.branch }} openwrt
+          mkdir -p $GITHUB_WORKSPACE/version-info/${{ matrix.target.branch }}
+          cd openwrt
+          # 生成版本日志文件
+          git show -s --date=short --format="OpenWRT v${{ matrix.target.version }} 更新记录%nAuthor: %an%nDate: %cd%nCommit: %s%nCommit hash: %H%n" > $GITHUB_WORKSPACE/version-info/${{ matrix.target.branch }}/${{ matrix.target.branch }}.version.txt
+
+      - name: Update & install feeds
+        run: |
+          cd /mnt/workdir/openwrt
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+
+      - name: Load custom feeds
+        run: |
+          [ -e $FEEDS_CONF ] && mv $FEEDS_CONF openwrt/feeds.conf.default
+          chmod +x LEDE/diy-part1.sh
+          cd openwrt
+          $GITHUB_WORKSPACE/LEDE/diy-part1.sh
+
+
+      - name: Load custom config and patch
+        run: |
+          [ -e files ] && mv files /mnt/workdir/openwrt/files
+          [ -e banner ] && mv banner /mnt/workdir/openwrt/package/base-files/files/etc/banner
+          [ -e ${{ matrix.target.config }} ] && mv ${{ matrix.target.config }} /mnt/workdir/openwrt/.config
+          chmod +x LEDE/diy-part2.sh
+          cd /mnt/workdir/openwrt
+          $GITHUB_WORKSPACE/LEDE/diy-part2.sh
+
+      - name: Download packages
+        run: |
+          cd /mnt/workdir/openwrt
+          make defconfig
+          make download -j8
+          find dl -size -1024c -exec ls -l {} \;
+          find dl -size -1024c -exec rm -f {} \;
+
+      - name: 📦 TG 通知 - 开始构建
+        run: |
+          curl -s "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" -d "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}&text=🚧 开始构建: ${{ matrix.target.name }}" >/dev/null
+
+      - name: Compile firmware
+        id: compile
+        run: |
+          cd /mnt/workdir/openwrt
+          make -j$(nproc) || make -j1 || make -j1 V=s
+          echo "status=success" >> $GITHUB_OUTPUT
+
+      - name: 📦 TG 通知 - 构建完成
+        if: steps.compile.outputs.status == 'success'
+        run: |
+          curl -s "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" -d "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}&text=✅ 构建完成: ${{ matrix.target.name }}" >/dev/null
+
+      - name: Rename and copy firmware for main release
+        if: steps.compile.outputs.status == 'success'
+        run: |
+          cd /mnt/workdir/openwrt/bin/targets/*/*
+          ORIGINAL=$(ls immortalwrt-*-rootfs.tar.gz | head -n 1)
+          NEWNAME="immortalwrt-${{ matrix.target.version }}-${ORIGINAL#*-}"
+          cp "$ORIGINAL" "$NEWNAME"
+          echo "FIRMWARE_MAIN=$PWD/$NEWNAME" >> $GITHUB_ENV
+
+      - name: Upload original firmware to main release
+        if: steps.compile.outputs.status == 'success'
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ env.PRODUCT_NAME }}
+          name: R${{ env.FILE_DATE2 }} for ${{ env.PRODUCT_NAME }}
+          body: |
+            ✅ immortalwrt 官方精简固件
+
+            自动构建产物。
+          files: ${{ env.FIRMWARE_MAIN }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.TOKEN3 }}
+
+      - name: Rename and copy firmware for backup release
+        id: organize
+        if: steps.compile.outputs.status == 'success'
+        run: |
+          mkdir -p $GITHUB_WORKSPACE/renamed
+          cd /mnt/workdir/openwrt/bin/targets/*/*
+          ORIGINAL=$(ls immortalwrt-*-rootfs.tar.gz | head -n 1)
+          NEWNAME="immortalwrt-${{ matrix.target.version }}-${{ env.FILE_DATE2 }}-${ORIGINAL#*${{ matrix.target.version }}-}"
+          cp "$ORIGINAL" "$GITHUB_WORKSPACE/renamed/$NEWNAME"
+          echo "FIRMWARE_RENAMED=$GITHUB_WORKSPACE/renamed/$NEWNAME" >> $GITHUB_ENV
+          echo "status=success" >> $GITHUB_OUTPUT
+
+      - name: Upload renamed firmware to backup release
+        if: ${{ env.UPLOAD_RELEASE == 'true' }}
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ env.PRODUCT_NAME_Bak }}
+          name: R${{ env.FILE_DATE2 }} for ${{ env.PRODUCT_NAME_Bak }}
+          body: |
+            🔁 immortalwrt 构建备份（含重命名文件）
+
+          files: ./renamed/**/*.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.TOKEN3 }}
+
+      - name: Upload renamed firmware (artifact)
+        if: steps.organize.outputs.status == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Renamed-${{ matrix.target.branch }}-${{ env.FILE_DATE2 }}
+          path: ${{ env.FIRMWARE_RENAMED }}
+
+      - name: Upload version info (artifact)
+        uses: actions/upload-artifact@v4
+        with:
+          name: VersionInfo-${{ matrix.target.branch }}
+          path: ${{ github.workspace }}/version-info/${{ matrix.target.branch }}/*.version.txt
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup build environment
+        run: |
+          echo "FILE_DATE3=$(date '+%Y%m%d%H%M')" >> $GITHUB_ENV
+
+      - name: Download version info artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: VersionInfo-*
+          path: ./versions
+
+      - name: Download renamed firmware artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: Renamed-*
+          path: ./renamed
+
+      - name: Gather and export all version info
+        run: |
+          find ./versions -name "*.version.txt" | sort | xargs cat > version_body.txt
+          echo "ALL_VERSION_INFO<<EOF" >> $GITHUB_ENV
+          cat version_body.txt >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: Upload renamed firmware log to backup release
+        if: ${{ env.UPLOAD_RELEASE == 'true' }}
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ env.PRODUCT_NAME_Bak }}
+          name: ${{ env.PRODUCT_NAME_Bak }}
+          body: |
+            🔁 OpenWRT 构建备份（含重命名文件）
+
+            ${{ env.ALL_VERSION_INFO }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.TOKEN3 }}
+      
+      - name: Upload renamed firmware log to  release
+        if: ${{ env.UPLOAD_RELEASE == 'true' }}
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ env.PRODUCT_NAME }}
+          name: R${{ env.FILE_DATE3 }} for ${{ env.PRODUCT_NAME }}
+          body: |
+            🔁 OpenWRT 构建备份（含重命名文件）
+
+            ${{ env.ALL_VERSION_INFO }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.TOKEN3 }}
+      
+
+      - name: Telegram notification with full version info
+        run: |
+          text="✔️ immortalwrt x64&Arm Matrix 2-Release已成功编译！%0A"
+          curl -s "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" -d "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}&text=$text" >/dev/null
