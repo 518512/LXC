@@ -27,19 +27,19 @@ jobs:
     strategy:
       matrix:
         target:
-          - name: openwrt24-x86
+          - name: ImmortalWrt24-x86
             branch: openwrt-24.10
             config: LEDE/.x86_x64.mini.fix.config
             version: "24.10"
-          - name: openwrt23-x86
+          - name: ImmortalWrt23-x86
             branch: openwrt-23.05
             config: LEDE/.x86_x64.mini.fix.config
             version: "23.05"
-          - name: openwrt24-arm
+          - name: ImmortalWrt24-arm
             branch: openwrt-24.10
             config: LEDE/.Arm.mini.fix.config
             version: "24.10"
-          - name: openwrt23-arm
+          - name: ImmortalWrt23-arm
             branch: openwrt-23.05
             config: LEDE/.Arm.mini.fix.config
             version: "23.05"
@@ -59,12 +59,19 @@ jobs:
           echo "FILE_DATE2=$(date '+%Y%m%d%H%M')" >> $GITHUB_ENV
       
       - name: Clone OpenWrt source
-        working-directory: /mnt/workdir
         run: |
+          BUILDROOT="/mnt/workdir/${{ matrix.target.name }}"
+          TARGET_DIR="$BUILDROOT/openwrt"
+
           echo "🌀 正在克隆 OpenWrt 源码..."
           echo "REPO_URL = $REPO_URL"
           echo "BRANCH   = ${{ matrix.target.branch }}"
-          echo "当前工作目录：$(pwd)"
+          echo "CLONE TO = $TARGET_DIR"
+
+          mkdir -p "$BUILDROOT"
+          cd "$BUILDROOT"
+
+          echo "📁 当前工作目录：$(pwd)"
           echo "🔍 当前目录内容："
           ls -al
 
@@ -72,50 +79,50 @@ jobs:
           CLONE_STATUS=$?
 
           if [ $CLONE_STATUS -ne 0 ]; then
-          echo "❌ git clone 失败，退出。请检查仓库地址或分支是否正确。"
-          exit 1
+            echo "❌ git clone 失败，退出。请检查仓库地址或分支是否正确。"
+            exit 1
           fi
 
           echo "✅ 克隆成功，确认 openwrt 目录存在："
-          ls -al openwrt
+          ls -al "$TARGET_DIR"
 
           # 版本信息保存
-          mkdir -p $GITHUB_WORKSPACE/version-info/${{ matrix.target.branch }}
-          cd openwrt
+          mkdir -p "$GITHUB_WORKSPACE/version-info/${{ matrix.target.branch }}"
+          cd "$TARGET_DIR"
           git show -s --date=short --format="OpenWRT v${{ matrix.target.version }} 更新记录%nAuthor: %an%nDate: %cd%nCommit: %s%nCommit hash: %H%n" \
-          > $GITHUB_WORKSPACE/version-info/${{ matrix.target.branch }}/${{ matrix.target.branch }}.version.txt
+          > "$GITHUB_WORKSPACE/version-info/${{ matrix.target.branch }}/${{ matrix.target.branch }}.version.txt"
 
 
       - name: Load custom feeds
         run: |
-          if [ ! -d /mnt/workdir/openwrt ]; then
+          if [ ! -d /mnt/workdir/${{ matrix.target.name }}/openwrt ]; then
           echo "❌ 错误：openwrt 目录不存在，clone 可能失败"
           exit 1
           fi
-          [ -e "$FEEDS_CONF" ] && mv "$FEEDS_CONF" /mnt/workdir/openwrt/feeds.conf.default
+          [ -e "$FEEDS_CONF" ] && mv "$FEEDS_CONF" /mnt/workdir/${{ matrix.target.name }}/openwrt/feeds.conf.default
           chmod +x $GITHUB_WORKSPACE/LEDE/diy-part1.sh
-          cd /mnt/workdir/openwrt
+          cd /mnt/workdir/${{ matrix.target.name }}/openwrt
           $GITHUB_WORKSPACE/LEDE/diy-part1.sh
 
           
       - name: Update & install feeds
         run: |
-          cd /mnt/workdir/openwrt
+          cd /mnt/workdir/${{ matrix.target.name }}/openwrt
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
       - name: Load custom config and patch
         run: |
-          [ -e files ] && mv files /mnt/workdir/openwrt/files
-          [ -e banner ] && mv banner /mnt/workdir/openwrt/package/base-files/files/etc/banner
-          [ -e ${{ matrix.target.config }} ] && mv ${{ matrix.target.config }} /mnt/workdir/openwrt/.config
-          chmod +x LEDE/diy-part2.sh
-          cd /mnt/workdir/openwrt
+          [ -e files ] && mv files /mnt/workdir/${{ matrix.target.name }}/openwrt/files
+          [ -e banner ] && mv banner /mnt/workdir/${{ matrix.target.name }}/openwrt/package/base-files/files/etc/banner
+          [ -e ${{ matrix.target.config }} ] && mv ${{ matrix.target.config }} /mnt/workdir/${{ matrix.target.name }}/openwrt/.config
+          chmod +x $GITHUB_WORKSPACE/LEDE/diy-part2.sh
+          cd /mnt/workdir/${{ matrix.target.name }}/openwrt
           $GITHUB_WORKSPACE/LEDE/diy-part2.sh
 
       - name: Download packages
         run: |
-          cd /mnt/workdir/openwrt
+          cd /mnt/workdir/${{ matrix.target.name }}/openwrt
           make defconfig
           make download -j8
           find dl -size -1024c -exec ls -l {} \;
@@ -128,7 +135,7 @@ jobs:
       - name: Compile firmware
         id: compile
         run: |
-          cd /mnt/workdir/openwrt
+          cd /mnt/workdir/${{ matrix.target.name }}/openwrt
           make -j$(nproc) || make -j1 || make -j1 V=s
           echo "status=success" >> $GITHUB_OUTPUT
 
@@ -140,7 +147,7 @@ jobs:
       - name: Rename and copy firmware for main release
         if: steps.compile.outputs.status == 'success'
         run: |
-          cd /mnt/workdir/openwrt/bin/targets/*/*
+          cd /mnt/workdir/${{ matrix.target.name }}/openwrt/bin/targets/*/*
           ORIGINAL=$(ls immortalwrt-*-rootfs.tar.gz | head -n 1)
           NEWNAME="immortalwrt-${{ matrix.target.version }}-${ORIGINAL#*-}"
           cp "$ORIGINAL" "$NEWNAME"
@@ -165,7 +172,7 @@ jobs:
         if: steps.compile.outputs.status == 'success'
         run: |
           mkdir -p $GITHUB_WORKSPACE/renamed
-          cd /mnt/workdir/openwrt/bin/targets/*/*
+          cd /mnt/workdir/${{ matrix.target.name }}/openwrt/bin/targets/*/*
           ORIGINAL=$(ls immortalwrt-*-rootfs.tar.gz | head -n 1)
           NEWNAME="immortalwrt-${{ matrix.target.version }}-${{ env.FILE_DATE2 }}-${ORIGINAL#*${{ matrix.target.version }}-}"
           cp "$ORIGINAL" "$GITHUB_WORKSPACE/renamed/$NEWNAME"
