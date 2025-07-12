@@ -27,11 +27,11 @@ jobs:
     strategy:
       matrix:
         target:
-          - name: openwrt24—x86
+          - name: openwrt24-x86
             branch: openwrt-24.10
             config: LEDE/.x86_x64.mini.fix.config
             version: "24.10"
-          - name: openwrt23—x86
+          - name: openwrt23-x86
             branch: openwrt-23.05
             config: LEDE/.x86_x64.mini.fix.config
             version: "23.05"
