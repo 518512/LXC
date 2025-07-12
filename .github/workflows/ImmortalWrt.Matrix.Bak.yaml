@@ -88,10 +88,15 @@ jobs:
 
       - name: Load custom feeds
         run: |
-          [ -e $FEEDS_CONF ] && mv $FEEDS_CONF openwrt/feeds.conf.default
-          chmod +x LEDE/diy-part1.sh
-          cd openwrt
+          if [ ! -d /mnt/workdir/openwrt ]; then
+          echo "❌ 错误：openwrt 目录不存在，clone 可能失败"
+          exit 1
+          fi
+          [ -e "$FEEDS_CONF" ] && mv "$FEEDS_CONF" /mnt/workdir/openwrt/feeds.conf.default
+          chmod +x $GITHUB_WORKSPACE/LEDE/diy-part1.sh
+          cd /mnt/workdir/openwrt
           $GITHUB_WORKSPACE/LEDE/diy-part1.sh
+
           
       - name: Update & install feeds
         run: |
