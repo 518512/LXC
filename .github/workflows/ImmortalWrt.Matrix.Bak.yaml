@@ -61,11 +61,30 @@ jobs:
       - name: Clone OpenWrt source
         working-directory: /mnt/workdir
         run: |
-          git clone $REPO_URL -b ${{ matrix.target.branch }} openwrt
-          mkdir -p $GITHUB_WORKSPACE/version-info/${{ matrix.target.branch }}
-          cd openwrt
-          # 生成版本日志文件
-          git show -s --date=short --format="OpenWRT v${{ matrix.target.version }} 更新记录%nAuthor: %an%nDate: %cd%nCommit: %s%nCommit hash: %H%n" > $GITHUB_WORKSPACE/version-info/${{ matrix.target.branch }}/${{ matrix.target.branch }}.version.txt
+          echo "🌀 正在克隆 OpenWrt 源码..."
+          echo "REPO_URL = $REPO_URL"
+          echo "BRANCH   = ${{ matrix.target.branch }}"
+          echo "当前工作目录：$(pwd)"
+          echo "🔍 当前目录内容："
+          ls -al
+
+          git clone "$REPO_URL" -b "${{ matrix.target.branch }}" openwrt
+          CLONE_STATUS=$?
+
+          if [ $CLONE_STATUS -ne 0 ]; then
+          echo "❌ git clone 失败，退出。请检查仓库地址或分支是否正确。"
+          exit 1
+          fi
+
+    echo "✅ 克隆成功，确认 openwrt 目录存在："
+    ls -al openwrt
+
+    # 版本信息保存
+    mkdir -p $GITHUB_WORKSPACE/version-info/${{ matrix.target.branch }}
+    cd openwrt
+    git show -s --date=short --format="OpenWRT v${{ matrix.target.version }} 更新记录%nAuthor: %an%nDate: %cd%nCommit: %s%nCommit hash: %H%n" \
+      > $GITHUB_WORKSPACE/version-info/${{ matrix.target.branch }}/${{ matrix.target.branch }}.version.txt
+
 
       - name: Load custom feeds
         run: |
