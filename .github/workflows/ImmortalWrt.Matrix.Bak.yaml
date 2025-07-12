@@ -76,14 +76,14 @@ jobs:
           exit 1
           fi
 
-    echo "✅ 克隆成功，确认 openwrt 目录存在："
-    ls -al openwrt
+          echo "✅ 克隆成功，确认 openwrt 目录存在："
+          ls -al openwrt
 
-    # 版本信息保存
-    mkdir -p $GITHUB_WORKSPACE/version-info/${{ matrix.target.branch }}
-    cd openwrt
-    git show -s --date=short --format="OpenWRT v${{ matrix.target.version }} 更新记录%nAuthor: %an%nDate: %cd%nCommit: %s%nCommit hash: %H%n" \
-      > $GITHUB_WORKSPACE/version-info/${{ matrix.target.branch }}/${{ matrix.target.branch }}.version.txt
+          # 版本信息保存
+          mkdir -p $GITHUB_WORKSPACE/version-info/${{ matrix.target.branch }}
+          cd openwrt
+          git show -s --date=short --format="OpenWRT v${{ matrix.target.version }} 更新记录%nAuthor: %an%nDate: %cd%nCommit: %s%nCommit hash: %H%n" \
+          > $GITHUB_WORKSPACE/version-info/${{ matrix.target.branch }}/${{ matrix.target.branch }}.version.txt
 
 
       - name: Load custom feeds
