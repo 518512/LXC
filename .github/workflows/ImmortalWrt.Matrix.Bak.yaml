@@ -15,6 +15,7 @@ env:
   REPO_URL: https://github.com/immortalwrt/immortalwrt
   TZ: Asia/Shanghai
   UPLOAD_RELEASE: true
+  FEEDS_CONF: feedss.conf.default
   PRODUCT_NAME: ImmWRT_Matrix
   PRODUCT_NAME_Bak: ImmWRT_Matrix_Bak
   DIY_P1_SH: LEDE/diy-part1.sh
