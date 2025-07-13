@@ -196,13 +196,13 @@ jobs:
         if: steps.organize.outputs.status == 'success'
         uses: actions/upload-artifact@v4
         with:
-          name: Renamed-${{ matrix.target.branch }}-${{ env.FILE_DATE2 }}
+          name: Renamed-${{ matrix.target.name }}-${{ env.FILE_DATE2 }}
           path: ${{ env.FIRMWARE_RENAMED }}
 
       - name: Upload version info (artifact)
         uses: actions/upload-artifact@v4
         with:
-          name: VersionInfo-${{ matrix.target.branch }}
+          name: VersionInfo-${{ matrix.target.name }}
           path: ${{ github.workspace }}/version-info/${{ matrix.target.branch }}/*.version.txt
 
   release:
