@@ -1,0 +1,267 @@
+name: LEDE Matrix 2-Release
+permissions: write-all
+
+on:
+  workflow_dispatch:
+    inputs:
+      ssh:
+        description: 'Enable SSH debugging'
+        required: false
+        default: 'false'
+  schedule:
+    - cron: '0 18 * * 5'  # 每周五 18:00 定时触发
+
+env:
+  REPO_URL: https://github.com/coolsnowwolf/lede
+  TZ: Asia/Shanghai
+  UPLOAD_RELEASE: true
+  FEEDS_CONF: LEDE/feeds.conf.default
+  PRODUCT_NAME: LEDE_Matrix
+  PRODUCT_NAME_Bak: LEDE_Matrix_Bak
+  DIY_P1_SH: LEDE/diy-part1.sh
+  DIY_P2_SH: LEDE/diy-part-patches.sh
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target:
+          - name: LEDE24-x86
+            branch: master
+            config: LEDE/.x86_x64.mini.fix.config
+            version: "24.10"
+          - name: LEDE24-arm
+            branch: master
+            config: LEDE/.Arm.mini.fix.config
+            version: "24.10"
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v3
+      - name: Setup build environment
+        run: |
+          sudo -E apt-get -qq update
+          sudo -E apt -y install $(curl -fsSL https://is.gd/depends_ubuntu_2204)
+          sudo -E apt-get -qq autoremove --purge
+          sudo -E apt-get -qq clean
+          sudo timedatectl set-timezone "$TZ"
+          sudo mkdir -p /mnt/workdir
+          sudo chown $USER:$GROUPS /mnt/workdir
+          echo "FILE_DATE2=$(date '+%Y%m%d%H%M')" >> $GITHUB_ENV
+      
+      - name: Clone OpenWrt source
+        run: |
+          BUILDROOT="/mnt/workdir/${{ matrix.target.name }}"
+          TARGET_DIR="$BUILDROOT/openwrt"
+
+          echo "🌀 正在克隆 OpenWrt 源码..."
+          echo "REPO_URL = $REPO_URL"
+          echo "BRANCH   = ${{ matrix.target.branch }}"
+          echo "CLONE TO = $TARGET_DIR"
+
+          mkdir -p "$BUILDROOT"
+          cd "$BUILDROOT"
+
+          echo "📁 当前工作目录：$(pwd)"
+          echo "🔍 当前目录内容："
+          ls -al
+
+          git clone "$REPO_URL" -b "${{ matrix.target.branch }}" openwrt
+          CLONE_STATUS=$?
+
+          if [ $CLONE_STATUS -ne 0 ]; then
+            echo "❌ git clone 失败，退出。请检查仓库地址或分支是否正确。"
+            exit 1
+          fi
+
+          echo "✅ 克隆成功，确认 openwrt 目录存在："
+          ls -al "$TARGET_DIR"
+
+          # 版本信息保存
+          mkdir -p "$GITHUB_WORKSPACE/version-info/${{ matrix.target.branch }}"
+          cd "$TARGET_DIR"
+          git show -s --date=short --format="OpenWRT v${{ matrix.target.version }} 更新记录%nAuthor: %an%nDate: %cd%nCommit: %s%nCommit hash: %H%n" \
+          > "$GITHUB_WORKSPACE/version-info/${{ matrix.target.branch }}/${{ matrix.target.branch }}.version.txt"
+
+
+      - name: Load custom feeds
+        run: |
+          if [ ! -d /mnt/workdir/${{ matrix.target.name }}/openwrt ]; then
+          echo "❌ 错误：openwrt 目录不存在，clone 可能失败"
+          exit 1
+          fi
+          [ -e "$FEEDS_CONF" ] && mv "$FEEDS_CONF" /mnt/workdir/${{ matrix.target.name }}/openwrt/feeds.conf.default
+          chmod +x $GITHUB_WORKSPACE/LEDE/diy-part1.sh
+          cd /mnt/workdir/${{ matrix.target.name }}/openwrt
+          $GITHUB_WORKSPACE/LEDE/diy-part1.sh
+
+          
+      - name: Update & install feeds
+        run: |
+          cd /mnt/workdir/${{ matrix.target.name }}/openwrt
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+
+      - name: Load custom config and patch
+        run: |
+          [ -e files ] && mv files /mnt/workdir/${{ matrix.target.name }}/openwrt/files
+          [ -e banner ] && mv banner /mnt/workdir/${{ matrix.target.name }}/openwrt/package/base-files/files/etc/banner
+          [ -e ${{ matrix.target.config }} ] && mv ${{ matrix.target.config }} /mnt/workdir/${{ matrix.target.name }}/openwrt/.config
+          chmod +x $GITHUB_WORKSPACE/LEDE/diy-part2.sh
+          cd /mnt/workdir/${{ matrix.target.name }}/openwrt
+          $GITHUB_WORKSPACE/LEDE/diy-part2.sh
+
+      - name: Download packages
+        run: |
+          cd /mnt/workdir/${{ matrix.target.name }}/openwrt
+          make defconfig
+          make download -j8
+          find dl -size -1024c -exec ls -l {} \;
+          find dl -size -1024c -exec rm -f {} \;
+
+      - name: 📦 TG 通知 - 开始构建
+        run: |
+          curl -s "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" -d "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}&text=🚧 开始构建: ${{ matrix.target.name }}" >/dev/null
+
+      - name: Compile firmware
+        id: compile
+        run: |
+          cd /mnt/workdir/${{ matrix.target.name }}/openwrt
+          make -j$(nproc) || make -j1 || make -j1 V=s
+          echo "status=success" >> $GITHUB_OUTPUT
+      - name: 检查空间使用情况-3
+        if: (!cancelled())
+        run: df -hT
+
+      - name: Clean up server space
+        if: steps.compile.outputs.status == 'success' && !cancelled()
+        run: |
+          cd openwrt/
+          rm -rf $(ls . | grep -v "^bin$" | xargs) 2>/dev/null
+          df -hT ${PWD}
+
+      - name: 📦 TG 通知 - 构建完成
+        if: steps.compile.outputs.status == 'success'
+        run: |
+          curl -s "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" -d "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}&text=✅ 构建完成: ${{ matrix.target.name }}" >/dev/null
+
+      - name: Rename and copy firmware for main release
+        if: steps.compile.outputs.status == 'success'
+        run: |
+          cd /mnt/workdir/${{ matrix.target.name }}/openwrt/bin/targets/*/*
+          ORIGINAL=$(ls openwrt-*-rootfs.tar.gz | head -n 1)
+          NEWNAME="LEDE-${{ matrix.target.version }}-${ORIGINAL#*-}"
+          cp "$ORIGINAL" "$NEWNAME"
+          echo "FIRMWARE_MAIN=$PWD/$NEWNAME" >> $GITHUB_ENV
+
+      - name: Upload original firmware to main release
+        if: steps.compile.outputs.status == 'success'
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ env.PRODUCT_NAME }}
+          name: R${{ env.FILE_DATE2 }} for ${{ env.PRODUCT_NAME }}
+          body: |
+            ✅ LEDE 官方精简固件
+
+            自动构建产物。
+          files: ${{ env.FIRMWARE_MAIN }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.TOKEN3 }}
+
+      - name: Rename and copy firmware for backup release
+        id: organize
+        if: steps.compile.outputs.status == 'success'
+        run: |
+          mkdir -p $GITHUB_WORKSPACE/renamed
+          cd /mnt/workdir/${{ matrix.target.name }}/openwrt/bin/targets/*/*
+          ORIGINAL=$(ls openwrt-*-rootfs.tar.gz | head -n 1)
+          NEWNAME="LEDE-${{ matrix.target.version }}-${{ env.FILE_DATE2 }}-${ORIGINAL#*${{ matrix.target.version }}-}"
+          cp "$ORIGINAL" "$GITHUB_WORKSPACE/renamed/$NEWNAME"
+          echo "FIRMWARE_RENAMED=$GITHUB_WORKSPACE/renamed/$NEWNAME" >> $GITHUB_ENV
+          echo "status=success" >> $GITHUB_OUTPUT
+
+      - name: Upload renamed firmware to backup release
+        if: ${{ env.UPLOAD_RELEASE == 'true' }}
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ env.PRODUCT_NAME_Bak }}
+          name: R${{ env.FILE_DATE2 }} for ${{ env.PRODUCT_NAME_Bak }}
+          body: |
+            🔁 LEDE 构建备份（含重命名文件）
+
+          files: ./renamed/**/*.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.TOKEN3 }}
+
+      - name: Upload renamed firmware (artifact)
+        if: steps.organize.outputs.status == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Renamed-${{ matrix.target.name }}-${{ env.FILE_DATE2 }}
+          path: ${{ env.FIRMWARE_RENAMED }}
+
+      - name: Upload version info (artifact)
+        uses: actions/upload-artifact@v4
+        with:
+          name: VersionInfo-${{ matrix.target.name }}
+          path: ${{ github.workspace }}/version-info/${{ matrix.target.branch }}/*.version.txt
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup build environment
+        run: |
+          echo "FILE_DATE3=$(date '+%Y%m%d%H%M')" >> $GITHUB_ENV
+
+      - name: Download version info artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: VersionInfo-*
+          path: ./versions
+
+      - name: Download renamed firmware artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: Renamed-*
+          path: ./renamed
+
+      - name: Gather and export all version info
+        run: |
+          find ./versions -name "*.version.txt" | sort | xargs cat > version_body.txt
+          echo "ALL_VERSION_INFO<<EOF" >> $GITHUB_ENV
+          cat version_body.txt >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: Upload renamed firmware log to backup release
+        if: ${{ env.UPLOAD_RELEASE == 'true' }}
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ env.PRODUCT_NAME_Bak }}
+          name: ${{ env.PRODUCT_NAME_Bak }}
+          body: |
+            🔁 OpenWRT 构建备份（含重命名文件）
+
+            ${{ env.ALL_VERSION_INFO }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.TOKEN3 }}
+      
+      - name: Upload renamed firmware log to  release
+        if: ${{ env.UPLOAD_RELEASE == 'true' }}
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ env.PRODUCT_NAME }}
+          name: R${{ env.FILE_DATE3 }} for ${{ env.PRODUCT_NAME }}
+          body: |
+            🔁 OpenWRT 构建备份（含重命名文件）
+
+            ${{ env.ALL_VERSION_INFO }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.TOKEN3 }}
+      
+
+      - name: Telegram notification with full version info
+        run: |
+          text="✔️ LEDE x64&Arm Matrix 2-Release已成功编译！%0A"
+          curl -s "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" -d "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}&text=$text" >/dev/null
