@@ -137,7 +137,7 @@ jobs:
       - name: Clean up server space
         if: steps.compile.outputs.status == 'success' && !cancelled()
         run: |
-          cd openwrt/
+          cd /mnt/workdir/${{ matrix.target.name }}/openwrt
           rm -rf $(ls . | grep -v "^bin$" | xargs) 2>/dev/null
           df -hT ${PWD}
 
