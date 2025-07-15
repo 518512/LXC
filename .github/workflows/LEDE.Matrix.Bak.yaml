@@ -30,11 +30,11 @@ jobs:
           - name: LEDE25-x86
             branch: master
             config: LEDE/.x86_x64.mini.fix.config
-            version: "24.7"
+            version: "24.07"
           - name: LEDE25-arm
             branch: master
             config: LEDE/.Arm.mini.fix.config
-            version: "24.7"
+            version: "24.07"
 
     steps:
       - name: Checkout source
@@ -169,7 +169,7 @@ jobs:
           tag_name: ${{ env.PRODUCT_NAME }}
           name: R${{ env.FILE_DATE2 }} for ${{ env.PRODUCT_NAME }}
           body: |
-            ✅ LEDE 官方精简固件
+            ✅ LEDE 最新版 25.07
 
             自动构建产物。
           files: ${{ env.FIRMWARE_MAIN }}
@@ -248,7 +248,7 @@ jobs:
           tag_name: ${{ env.PRODUCT_NAME_Bak }}
           name: ${{ env.PRODUCT_NAME_Bak }}
           body: |
-            🔁 OpenWRT 构建备份（含重命名文件）
+            🔁 LEDE 构建备份（含重命名文件）
 
             ${{ env.ALL_VERSION_INFO }}
         env:
@@ -261,7 +261,7 @@ jobs:
           tag_name: ${{ env.PRODUCT_NAME }}
           name: R${{ env.FILE_DATE3 }} for ${{ env.PRODUCT_NAME }}
           body: |
-            🔁 OpenWRT 构建备份（含重命名文件）
+            ✅ LEDE 最新版 25.07
 
             ${{ env.ALL_VERSION_INFO }}
         env:
