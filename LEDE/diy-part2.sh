@@ -69,6 +69,9 @@ rm -rf feeds/luci/applications/luci-app-mosdns
 merge_package https://github.com/sbwml/luci-app-mosdns luci-app-mosdns
 merge_package https://github.com/sbwml/luci-app-mosdns luci-app-mosdns/mosdns
 
+#ssr-plus
+git clone --depth=1 https://github.com/fw876/helloworld.git ssr-plus
+
 # 修改主题背景
 # cp -f $GITHUB_WORKSPACE/bg1.jpg feeds/luci/themes/luci-theme-argon/htdocs/luci-static/argon/img/bg1.jpg
 
