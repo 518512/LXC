@@ -1,6 +1,6 @@
 ## LEDE/ImmortalWrt/~~OpenWRT Official~~ X86_X64 & ArmV8 mini
 
-| 平台+设备名称 | 固件编译状态/IP:10.5.2.1/用户：root/密码：password | 下载 |
+| 平台+设备名称 | 固件编译状态 / IP:10.5.2.1 / 用户：root / 密码：password | 下载 |
 | :------------- | :------------- | :------------- |
 | [![](https://img.shields.io/badge/ImmortalWrt-LEDE-32C955.svg?logo=openwrt)](#) |[![](https://github.com/518512/LXC/actions/workflows/ImmortalWrt.Matrix.Bak.yaml/badge.svg)](#)  [![](https://github.com/518512/LXC/actions/workflows/LEDE.Matrix.Bak.yaml/badge.svg)](#)| [![](https://img.shields.io/badge/下载-链接-blueviolet.svg?logo=hack-the-box)](https://github.com/518512/LXC/tags) |
 
