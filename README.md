@@ -1,4 +1,4 @@
-## LEDE/ImmortalWrt/~~OpenWRT Official~~ X86_X64 & ArmV8 mini（主力更新）
+## LEDE/ImmortalWrt/~~OpenWRT Official~~ X86_X64 & ArmV8 mini
 > [!TIP]
 > **插件：基础功能、IPV6、Wireguard、SSR Plus+、PW、OC、Argon 主题、Smartdns、upnp、ShutDown**
 
