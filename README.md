@@ -4,12 +4,16 @@
 
 > [!WARNING]
 > **待完成：统一OpenWRT Official mini配置文件，有几个插件冲突问题一直没找到方法**
-
+> **OpenWRT Official版请到：([518512/OpenWRT-LXC](https://github.com/518512/OpenWRT-LXC))**
 > [!IMPORTANT]
 > **待加入：mosdns（貌似暂时不支持LEDE了，https://github.com/sbwml/luci-app-mosdns/issues/252#issuecomment-2336829767 ）**
 
 > [!NOTE]
 > **维护记录**
+> 
+> **调整优化：20250715 利用chatgpt升级为Github Action的Matrix编译，同时编译不同版本及平台的固件**
+
+> **Matrix为最新日期编译，Matrix_Bak为历史编译存档，参考文件名编译日期**
 
 > **删除插件：20241402 remove ~~AdGuard Home~~**
 
