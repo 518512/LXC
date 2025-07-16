@@ -5,7 +5,7 @@
   
 | 平台+设备名称 | 固件编译状态 | 下载 |
 | :------------- | :------------- | :------------- |
-| [![](https://img.shields.io/badge/LEDE-ImmortalWrt-32C955.svg?logo=openwrt)](#) |[![](https://github.com/518512/LXC/actions/workflows/ImmortalWrt.Matrix.Bak.yaml/badge.svg)](#)  [![](https://github.com/518512/LXC/actions/workflows/LEDE.Matrix.Bak.yaml/badge.svg)](#)| [![](https://img.shields.io/badge/下载-链接-blueviolet.svg?logo=hack-the-box)](https://github.com/518512/LXC/tags) |
+| [![](https://img.shields.io/badge/ImmortalWrt-LEDE-32C955.svg?logo=openwrt)](#) |[![](https://github.com/518512/LXC/actions/workflows/ImmortalWrt.Matrix.Bak.yaml/badge.svg)](#)  [![](https://github.com/518512/LXC/actions/workflows/LEDE.Matrix.Bak.yaml/badge.svg)](#)| [![](https://img.shields.io/badge/下载-链接-blueviolet.svg?logo=hack-the-box)](https://github.com/518512/LXC/tags) |
 
 > [!TIP]
 > **插件：基础功能、IPV6、Wireguard、SSR Plus+、PW、OC、Argon 主题、Smartdns、upnp、ShutDown**
