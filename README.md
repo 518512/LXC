@@ -2,6 +2,7 @@
  |名称|说明|用户|密码|备选|
   |:----|:----|:----|:----|:----|
   | IP| 10.5.2.1| root| password| 192.168.1.1|
+  
 | 平台+设备名称 | 固件编译状态 | 下载 |
 | :------------- | :------------- | :------------- |
 | [![](https://img.shields.io/badge/LEDE-ImmortalWrt-32C955.svg?logo=openwrt)](#) |[![](https://github.com/518512/LXC/actions/workflows/ImmortalWrt.Matrix.Bak.yaml/badge.svg)](#)  [![](https://github.com/518512/LXC/actions/workflows/LEDE.Matrix.Bak.yaml/badge.svg)](#)| [![](https://img.shields.io/badge/下载-链接-blueviolet.svg?logo=hack-the-box)](https://github.com/518512/LXC/tags) |
