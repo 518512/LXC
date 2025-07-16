@@ -15,7 +15,7 @@
 > 
 > **调整优化：20250715 利用chatgpt升级为Github Action的Matrix编译，同时编译不同版本及平台的固件**
 > 
-> **Matrix为最新日期编译，Matrix_Bak为历史编译存档，参考文件名编译日期**
+> **Matrix为最新日期编译，Matrix_Bak为历史编译存档，参考文件名编译日期,详情：[518512/LXC/tags](https://github.com/518512/LXC/tags)**
 > 
 > **删除插件：20241402 remove ~~AdGuard Home~~**
 >
