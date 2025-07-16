@@ -89,7 +89,7 @@ jobs:
           # 版本信息保存
           mkdir -p "$GITHUB_WORKSPACE/version-info/${{ matrix.target.branch }}"
           cd "$TARGET_DIR"
-          git show -s --date=short --format="OpenWRT v${{ matrix.target.version }} 更新记录%nAuthor: %an%nDate: %cd%nCommit: %s%nCommit hash: %H%n" \
+          git show -s --date=short --format="ImmortalWrt v${{ matrix.target.version }} 更新记录%nAuthor: %an%nDate: %cd%nCommit: %s%nCommit hash: %H%n" \
           > "$GITHUB_WORKSPACE/version-info/${{ matrix.target.branch }}/${{ matrix.target.branch }}.version.txt"
 
 
@@ -160,7 +160,7 @@ jobs:
           tag_name: ${{ env.PRODUCT_NAME }}
           name: R${{ env.FILE_DATE2 }} for ${{ env.PRODUCT_NAME }}
           body: |
-            ✅ immortalwrt 官方精简固件
+            🔁 ImmortalWrt 23.05/24.10
 
             自动构建产物。
           files: ${{ env.FIRMWARE_MAIN }}
@@ -186,7 +186,7 @@ jobs:
           tag_name: ${{ env.PRODUCT_NAME_Bak }}
           name: R${{ env.FILE_DATE2 }} for ${{ env.PRODUCT_NAME_Bak }}
           body: |
-            🔁 immortalwrt 构建备份（含重命名文件）
+            🔁 ImmortalWrt 23.05/24.10 构建备份
 
           files: ./renamed/**/*.tar.gz
         env:
@@ -239,7 +239,7 @@ jobs:
           tag_name: ${{ env.PRODUCT_NAME_Bak }}
           name: ${{ env.PRODUCT_NAME_Bak }}
           body: |
-            🔁 OpenWRT 构建备份（含重命名文件）
+            🔁 ImmortalWrt 23.05/24.10 构建备份
 
             ${{ env.ALL_VERSION_INFO }}
         env:
@@ -252,7 +252,7 @@ jobs:
           tag_name: ${{ env.PRODUCT_NAME }}
           name: R${{ env.FILE_DATE3 }} for ${{ env.PRODUCT_NAME }}
           body: |
-            🔁 OpenWRT 构建备份（含重命名文件）
+            🔁 ImmortalWrt 23.05/24.10
 
             ${{ env.ALL_VERSION_INFO }}
         env:
@@ -261,5 +261,5 @@ jobs:
 
       - name: Telegram notification with full version info
         run: |
-          text="✔️ immortalwrt x64&Arm Matrix 2-Release已成功编译！%0A"
+          text="✅ immortalwrt x64/Arm Matrix 2-Release已成功编译！%0A"
           curl -s "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" -d "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}&text=$text" >/dev/null
