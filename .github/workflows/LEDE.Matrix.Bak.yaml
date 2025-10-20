@@ -108,9 +108,9 @@ jobs:
           [ -e files ] && mv files /mnt/workdir/${{ matrix.target.name }}/openwrt/files
           [ -e banner ] && mv banner /mnt/workdir/${{ matrix.target.name }}/openwrt/package/base-files/files/etc/banner
           [ -e ${{ matrix.target.config }} ] && mv ${{ matrix.target.config }} /mnt/workdir/${{ matrix.target.name }}/openwrt/.config
-          chmod +x $GITHUB_WORKSPACE/LEDE/diy-part2.sh
+          chmod +x $GITHUB_WORKSPACE/LEDE/diy-part-patches.sh
           cd /mnt/workdir/${{ matrix.target.name }}/openwrt
-          $GITHUB_WORKSPACE/LEDE/diy-part2.sh
+          $GITHUB_WORKSPACE/LEDE/diy-part-patches.sh
 
       - name: chmod and copy uhttpd
         run: |
