@@ -116,6 +116,20 @@ jobs:
           chmod +x $GITHUB_WORKSPACE/LEDE/diy-part-patches.sh
           cd /mnt/workdir/${{ matrix.target.name }}/openwrt
           $GITHUB_WORKSPACE/LEDE/diy-part-patches.sh
+          
+      - name: 【仅排查】打印最终 .config 内容
+        run: |
+          cd /mnt/workdir/${{ matrix.target.name }}/openwrt
+          echo "=================================================="
+          echo "【最终 .config 完整内容开始】（共 $(wc -l < .config) 行）"
+          echo "--------------------------------------------------"
+          cat .config
+          echo "--------------------------------------------------"
+          echo "【最终 .config 完整内容结束】"
+          echo "=================================================="
+          echo "【重点检查】是否包含 ssr-plus / bypass 等关键词："
+          grep -n -E "ssr-plus|bypass|shadowsocks.*ss-" .config || echo "恭喜！已干净，没有这些雷包"
+          echo "=================================================="
 
       - name: chmod and copy uhttpd
         run: |
