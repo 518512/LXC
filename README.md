@@ -1,7 +1,7 @@
 ## LEDE/ImmortalWrt/~~OpenWRT Official~~ X86_X64 & ArmV8 mini
 
 > [!TIP]
-> **插件：基础功能、IPV6、Wireguard、SSR Plus+、PW、OC、Argon 主题、Smartdns、upnp、ShutDown、Nano、TTYD**
+> **插件：基础功能、IPV6、Wireguard、~~SSR Plus+~~、PW、OC、Argon 主题、Smartdns、upnp、ShutDown、Nano、TTYD**
 > 
 > | 平台+设备名称 | 固件编译状态 / 默认IP:10.5.2.1 / 用户：root / 密码：password | 下载 |
 > | :------------- | :------------- | :------------- |
@@ -43,4 +43,5 @@
 ## License
 
 [MIT](https://github.com/P3TERX/Actions-OpenWrt/blob/main/LICENSE) © [**P3TERX**](https://p3terx.com)
+
 
