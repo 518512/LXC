@@ -107,15 +107,32 @@ jobs:
           cd /mnt/workdir/${{ matrix.target.name }}/openwrt
           ./scripts/feeds update -a
           ./scripts/feeds install -a
-
+          
       - name: Load custom config and patch
         run: |
           [ -e files ] && mv files /mnt/workdir/${{ matrix.target.name }}/openwrt/files
           [ -e banner ] && mv banner /mnt/workdir/${{ matrix.target.name }}/openwrt/package/base-files/files/etc/banner
-          [ -e ${{ matrix.target.config }} ] && mv ${{ matrix.target.config }} /mnt/workdir/${{ matrix.target.name }}/openwrt/.config
-          chmod +x $GITHUB_WORKSPACE/LEDE/diy-part-patches.sh
+
+          echo "========== SOURCE CONFIG =========="
+          grep -n "miniupnpd" ${{ matrix.target.config }} || true
+          grep -n "firewall" ${{ matrix.target.config }} || true
+
+          [ -e ${{ matrix.target.config }} ] && cp ${{ matrix.target.config }} /mnt/workdir/${{ matrix.target.name }}/openwrt/.config
+
           cd /mnt/workdir/${{ matrix.target.name }}/openwrt
+
+          echo "========== AFTER COPY =========="
+          grep -n "miniupnpd" .config || true
+          grep -n "firewall" .config || true
+
+          chmod +x $GITHUB_WORKSPACE/LEDE/diy-part-patches.sh
           $GITHUB_WORKSPACE/LEDE/diy-part-patches.sh
+
+          echo "========== AFTER DIY =========="
+          grep -n "miniupnpd" .config || true
+          grep -n "firewall" .config || true
+
+
           
       - name: 【仅排查】打印最终 .config 内容
         run: |
