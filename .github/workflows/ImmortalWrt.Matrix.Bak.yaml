@@ -31,18 +31,10 @@ jobs:
             branch: openwrt-24.10
             config: LEDE/.x86_x64.mini.fix.config
             version: "24.10"
-          - name: ImmortalWrt23-x86
-            branch: openwrt-23.05
-            config: LEDE/.x86_x64.mini.fix.config
-            version: "23.05"
           - name: ImmortalWrt24-arm
             branch: openwrt-24.10
             config: LEDE/.Arm.mini.fix.config
             version: "24.10"
-          - name: ImmortalWrt23-arm
-            branch: openwrt-23.05
-            config: LEDE/.Arm.mini.fix.config
-            version: "23.05"
 
     steps:
       - name: Checkout source
