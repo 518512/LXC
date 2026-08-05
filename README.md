@@ -17,7 +17,13 @@
 
 > [!NOTE]
 > **维护记录**
-> 
+>
+> **调整优化：20260805 切换到FW4 + nftables ，由于ImmortalWrt 23.05基本停止上游更新，删除 ImmortalWrt 23.05版本编译。**
+> ImmortalWrt v23.05 更新记录
+Author: Tianling Shen
+Date: 2026-02-27
+Commit: Merge Official Source
+Commit hash: 0f110722021a93e60e7442ceded7eaea67ff921b
 > **调整优化：20250715 利用chatgpt升级为Github Action的Matrix编译，同时编译不同版本及平台的固件**
 > 
 > **Matrix为最新日期编译，Matrix_Bak为历史编译存档，参考文件名编译日期,详情：[518512/LXC/tags](https://github.com/518512/LXC/tags)**
